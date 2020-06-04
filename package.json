@@ -1,0 +1,27 @@
+{
+  "name": "node-spa-calls-tutorial",
+  "version": "0.0.1",
+  "description": "An example of utilizing the Vail FreeClimb API to configure a small franchise IVR",
+  "main": "examples/main.js",
+  "scripts": {
+    "start": "node examples/main.js",
+    "dev": "nodemon --watch examples examples/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmitchinson/Node-Spa-Calls-Tutorial.git"
+  },
+  "author": "Ben Mitchinson",
+  "bugs": {
+    "url": "https://github.com/bmitchinson/Node-Spa-Calls-Tutorial/issues"
+  },
+  "homepage": "https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#readme",
+  "dependencies": {
+    "@freeclimb/sdk": "^1.0.3",
+    "body-parser": "^1.19.0",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.4"
+  }
+}
