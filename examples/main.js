@@ -23,9 +23,24 @@ app.listen(port, () => {
 app.post('/incomingMainOfficeCall', (req, res) => {
   console.log('The main office phone was called, playing message + creating conference.')
   const helloMsg = freeclimb.percl.say('Hello! Thanks for calling Vail Spa Management!')
-  const promptForSpa = freeclimb.percl.say(
-    'Press 1 to contact Deerfield Spa. Press 2 to contact Persephone Spa and Resort. Press three to leave a message at our main office.',
+  // const promptForSpa = freeclimb.percl.say(
+  //   'Press 1 to contact Deerfield Spa. Press 2 to contact Persephone Spa and Resort. Press three to leave a message at our main office.',
+  // )
+  // const getDigitsOptions = {
+  //   prompts: [promptForSpa],
+  //   maxDigits: 1,
+  //   minDigits: 1,
+  //   flushBuffer: false,
+  // }
+  // const getDigits = freeclimb.percl.getDigits(`${host}/spaSelected`, getDigitsOptions)
+  // res.status(200).json([helloMsg, getDigits])
+  const promptForSpaResponse = freeclimb.percl.say(
+    'Please say Deerfield to contact Deerfield spa, or Persephone, to contact Persephone Spa and Resort.',
   )
+  const options = {
+    grammarType: freeclimb.enums.grammarType.URL,
+    prompts: [say],
+  }
   const getDigitsOptions = {
     prompts: [promptForSpa],
     maxDigits: 1,

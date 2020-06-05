@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<grammar xml:lang="en-US" tag-format="semantics-ms/1.0" version="1.0" root="SpaName" mode="voice" xmlns="http://www.w3.org/2001/06/grammar">
+<rule id="SpaName" scope="public">
+        <item>
+                <item repeat="0-1"><ruleref uri="#UMFILTER"/></item>
+                <item>
+                    <one-of>
+                        <item>Deerfield<tag>$._value = "DEERFIELD";</tag></item>
+                        <item>Persephone<tag>$._value = "PERSEPHONE";</tag></item>
+                    </one-of>
+                </item>
+                <item repeat="0-1"><ruleref uri="#SUFFIX"/></item>
+        </item>
+</rule>
+
+<rule id="UMFILTER">
+        <one-of>
+                <item> uh </item>
+                <item> um </item>
+                <item> hm </item>
+                <item> ah </item>
+                <item> er </item>
+        </one-of>
+</rule>
+
+<rule id="SUFFIX">
+        <one-of>
+                <item> maam </item>
+                <item> sir </item>
+                <item> please </item>
+        </one-of>
+</rule>
+
+</grammar>
