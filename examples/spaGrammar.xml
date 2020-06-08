@@ -5,10 +5,10 @@
         <item>
                 <item repeat="0-1"><ruleref uri="#UMFILTER"/></item>
                 <item>
-                    <one-of>
-                        <item>Deerfield<tag>$._value = "DEERFIELD";</tag></item>
-                        <item>Persephone<tag>$._value = "PERSEPHONE";</tag></item>
-                    </one-of>
+                        <one-of>
+                                <item>Deerfield<tag>$._value = "DEERFIELD";</tag></item>
+                                <item>Persephone<tag>$._value = "PERSEPHONE";</tag></item>
+                        </one-of>
                 </item>
                 <item repeat="0-1"><ruleref uri="#SUFFIX"/></item>
         </item>
