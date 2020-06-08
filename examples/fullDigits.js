@@ -30,7 +30,7 @@ app.post('/incomingMainOfficeCall', (req, res) => {
     prompts: [promptForSpa],
     maxDigits: 1,
     minDigits: 1,
-    flushBuffer: false,
+    flushBuffer: true,
   }
   const getDigits = freeclimb.percl.getDigits(`${host}/spaSelected`, getDigitsOptions)
   res.status(200).json([helloMsg, getDigits])
@@ -45,13 +45,22 @@ app.post('/spaSelected', (req, res) => {
   switch (digit) {
     case '1':
       numberToForwardTo = '+19402206447' // Deerfield Spa
+      break
     case '2':
       numberToForwardTo = '+19402302667' // Persephone Spa + Resort
+      break
   }
 
   if (numberToForwardTo) {
+    const conferenceOptions = {
+      playBeep: 'entryOnly',
+      statusCallbackUrl: `${host}/gotConferenceStatus`,
+    }
     const conferenceStart = freeclimb.percl.createConference(`${host}/conferenceCreated/${numberToForwardTo}`)
     res.status(200).json([conferenceStart])
+  } else if (!digit) {
+    const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
+    res.status(200).json([startOver])
   } else {
     const badChoice = freeclimb.percl.say(`Sorry, ${digit} isn't an option.`)
     const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
@@ -109,7 +118,7 @@ app.post('/callConnected/:conferenceId', (req, res) => {
 })
 
 app.post('/leftConference', (req, res) => {
-  console.log('FreeClimb hit left conference')
+  console.log('FreeClimb: hit left conference')
   // Call terminateConference when the initial caller hangs up
   const leftConferenceResponse = req.body
   const conferenceId = leftConferenceResponse.conferenceId
@@ -118,7 +127,6 @@ app.post('/leftConference', (req, res) => {
 })
 
 function terminateConference(conferenceId) {
-  // Create the ConferenceUpdateOptions and set the status to terminated
   const options = {
     status: freeclimb.enums.conferenceStatus.TERMINATED,
   }
@@ -128,11 +136,21 @@ function terminateConference(conferenceId) {
       console.log('The conference was terminated')
     })
     .catch((err) => {
-      console.log('There was a problem terminating the conference')
+      console.log('There was a problem terminating the conference:', err)
     })
 }
 
 app.post('/gotSMS', (req, res) => {
   console.log('received a text:', req.body)
+  res.status(200).send()
+})
+
+app.post('/gotStatus', (req, res) => {
+  console.log('received a status:', req.body)
+  res.status(200).send()
+})
+
+app.post('/gotConferenceStatus', (req, res) => {
+  console.log('received a conference status:', req.body)
   res.status(200).send()
 })
