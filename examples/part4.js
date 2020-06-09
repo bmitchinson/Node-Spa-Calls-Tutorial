@@ -75,7 +75,6 @@ app.post('/spaSelected', (req, res) => {
     }
     const conferenceOptions = {
       playBeep: 'entryOnly',
-      statusCallbackUrl: `${host}/gotConferenceStatus`,
     }
     const conferenceStart = freeclimb.percl.createConference(`${host}/conferenceCreated/${numberToForwardTo}`)
     res.status(200).json([destination, conferenceStart])
@@ -161,23 +160,7 @@ function terminateConference(conferenceId) {
     })
 }
 
-app.post('/gotSMS', (req, res) => {
-  console.log('received a text:', req.body)
-  res.status(200).send()
-})
-
-app.post('/gotStatus', (req, res) => {
-  console.log('received a status:', req.body)
-  res.status(200).send()
-})
-
-app.post('/gotConferenceStatus', (req, res) => {
-  console.log('received a conference status:', req.body)
-  res.status(200).send()
-})
-
 app.get('/grammarFile', function (req, res) {
-  console.log('grammar req:', req)
   const file = `${__dirname}/spaGrammar.xml`
   res.download(file)
 })
