@@ -1,18 +1,13 @@
 /* part3: 
-User calls their FreeClimb number and is asked to enter a 1 to reach 
-Deerfield spa, or 2 to reach Persephone spa and resort. If no entry was 
-received, or an invalid number is chosen, the user is sent back to 
+User calls their FreeClimb number and is asked to say either "Deerfield" or
+"Persephone". If no speech was recognized the user is sent back to 
 /incomingMainOffice through a redirect
-
-- /incomingMainOffice call now uses "getDigits", to receive an entered number
-  input from the caller. Once a number is entered, FreeClimb forwards the
-  selection to /spaSelected
-
-- /spaSelected creates a conference using the received number selection to
-  determine the outbound number it should dial (Deerfield if 1 was chosen, 
-  Persephone if 2.) 
   
-- All conference logic is reused from Part 2.
+- All routes are the same as part3, and /spaSelected has been updated to use
+  getSpeech instead of getDigits
+
+- /grammarFile servers the `spaGrammar.xml` file that getSpeech requires
+  to understand speech input.
 
 */
 
@@ -50,50 +45,43 @@ app.post('/incomingMainOfficeCall', (req, res) => {
   console.log('The main office phone was called, prompting the user.')
   const helloMsg = freeclimb.percl.say('Hello! Thanks for calling Vail Spa Management!')
   const promptForSpa = freeclimb.percl.say(
-    'Press 1 to contact Deerfield Spa. Press 2 to contact Persephone Spa and Resort.',
+    'Please say Deerfield to contact the Deerfield Spa, or say Persephone to contact Persephone Spa and Resort.',
   )
-  const getDigitsOptions = {
+  const speechOptions = {
+    grammarType: freeclimb.enums.grammarType.URL,
     prompts: [promptForSpa],
-    maxDigits: 1,
-    minDigits: 1,
-    flushBuffer: true,
   }
-  const getDigits = freeclimb.percl.getDigits(`${host}/spaSelected`, getDigitsOptions)
-  res.status(200).json([helloMsg, getDigits])
+  const getSpeech = freeclimb.percl.getSpeech(`${host}/spaSelected`, `${host}/grammarFile`, speechOptions)
+  res.status(200).json([helloMsg, getSpeech])
 })
 
 app.post('/spaSelected', (req, res) => {
-  console.log('Digit entry has been captured')
-  const getDigitResponse = req.body
-  const digit = getDigitResponse.digits
-
+  console.log('Speech entry has been captured')
+  const getSpeechActionResponse = req.body
   let numberToForwardTo
   let destination
-  switch (digit) {
-    case '1':
-      numberToForwardTo = '+19402206447' // Deerfield Spa
-      destination = freeclimb.percl.say('Calling Deerfield Spa')
-      break
-    case '2':
-      numberToForwardTo = '+19402302667' // Persephone Spa + Resort
-      destination = freeclimb.percl.say('Calling Persephone Spa + Resort')
-      break
-  }
 
-  if (numberToForwardTo) {
+  if (getSpeechActionResponse.reason === freeclimb.enums.getSpeechReason.RECOGNITION) {
+    const spa = getSpeechActionResponse.recognitionResult
+    switch (spa) {
+      case 'DEERFIELD':
+        numberToForwardTo = '+19402206447' // Deerfield Spa
+        destination = freeclimb.percl.say('Calling Deerfield Spa')
+        break
+      case 'PERSEPHONE':
+        numberToForwardTo = '+19402302667' // Persephone Spa + Resort
+        destination = freeclimb.percl.say('Calling Persephone Spa + Resort')
+        break
+    }
     const conferenceOptions = {
       playBeep: 'entryOnly',
       statusCallbackUrl: `${host}/gotConferenceStatus`,
     }
     const conferenceStart = freeclimb.percl.createConference(`${host}/conferenceCreated/${numberToForwardTo}`)
     res.status(200).json([destination, conferenceStart])
-  } else if (!digit) {
-    console.log('No number was selected')
-    const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
-    res.status(200).json([startOver])
   } else {
-    console.log("Number entered wasn't an option")
-    const badChoice = freeclimb.percl.say(`Sorry, ${digit} isn't an option.`)
+    console.log('speech was not recognized')
+    const badChoice = freeclimb.percl.say(`Sorry, I didn't catch that, please try again.`)
     const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
     res.status(200).json([badChoice, startOver])
   }
@@ -139,7 +127,9 @@ app.post('/callConnected/:conferenceId', (req, res) => {
   const callConnectedResponse = req.body
   const conferenceId = req.params.conferenceId
   if (callConnectedResponse.dialCallStatus != freeclimb.enums.callStatus.IN_PROGRESS) {
-    // Terminate conference if agent does not answer the call. Can't use PerCL command since PerCL is ignored if the call was not answered.
+    // Terminate conference if agent does not answer the call.
+    // Can't use a PerCL command since PerCL is ignored if the
+    // call isn't answered.
     terminateConference(conferenceId)
     return res.status(200).json([])
   }
@@ -184,4 +174,10 @@ app.post('/gotStatus', (req, res) => {
 app.post('/gotConferenceStatus', (req, res) => {
   console.log('received a conference status:', req.body)
   res.status(200).send()
+})
+
+app.get('/grammarFile', function (req, res) {
+  console.log('grammar req:', req)
+  const file = `${__dirname}/spaGrammar.xml`
+  res.download(file)
 })
