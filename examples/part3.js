@@ -1,64 +1,99 @@
+/* part3: 
+User calls their FreeClimb number and is asked to enter a 1 to reach 
+Deerfield spa, or 2 to reach Persephone spa and resort. If no entry was 
+received, or an invalid number is chosen, the user is sent back to 
+/incomingMainOffice through a redirect
+
+- /incomingMainOffice call now uses "getDigits", to receive an entered number
+  input from the caller. Once a number is entered, FreeClimb forwards the
+  selection to /spaSelected
+
+- /spaSelected creates a conference using the received number selection to
+  determine the outbound number it should dial (Deerfield if 1 was chosen, 
+  Persephone if 2.) 
+  
+- All conference logic is reused from Part 2.
+
+*/
+
+//////////////////////////////////////////
+// Imports
 require('dotenv').config()
 const freeclimbSDK = require('@freeclimb/sdk')
 const express = require('express')
 const bodyParser = require('body-parser')
 const browser = require('./browser')
 const app = express()
-app.use(browser)
 app.use(bodyParser.json())
+app.use(browser)
+// bodyParser middleware is required in order to interpret responses
+//      from FreeClimb
+//////////////////////////////////////////
 
-// From your .env file
+//////////////////////////////////////////
+// environment variables
 const accountId = process.env.ACCOUNT_ID
 const authToken = process.env.AUTH_TOKEN
 const port = process.env.PORT || 80
-// Where the api we're creating will be accessible for FreeClimb to reach
 const host = process.env.HOST
+//////////////////////////////////////////
 
+// Initializing an instance of the SDK with our credentials
 const freeclimb = freeclimbSDK(accountId, authToken)
 
+// Starting the express API
 app.listen(port, () => {
   console.log(`Listing on port ${port}`)
 })
 
 app.post('/incomingMainOfficeCall', (req, res) => {
-  console.log('The main office phone was called.')
+  console.log('The main office phone was called, prompting the user.')
   const helloMsg = freeclimb.percl.say('Hello! Thanks for calling Vail Spa Management!')
   const promptForSpa = freeclimb.percl.say(
-    'Please say Deerfield to contact the Deerfield Spa, or say Persephone to contact Persephone Spa and Resort.',
+    'Press 1 to contact Deerfield Spa. Press 2 to contact Persephone Spa and Resort.',
   )
-  const speechOptions = {
-    grammarType: freeclimb.enums.grammarType.URL,
+  const getDigitsOptions = {
     prompts: [promptForSpa],
+    maxDigits: 1,
+    minDigits: 1,
+    flushBuffer: true,
   }
-  const getSpeech = freeclimb.percl.getSpeech(`${host}/spaSelected`, `${host}/grammarFile`, speechOptions)
-  res.status(200).json([helloMsg, getSpeech])
+  const getDigits = freeclimb.percl.getDigits(`${host}/spaSelected`, getDigitsOptions)
+  res.status(200).json([helloMsg, getDigits])
 })
 
 app.post('/spaSelected', (req, res) => {
   console.log('a spa was selected')
-  const getSpeechActionResponse = req.body
-  let numberToForwardTo = ''
+  const getDigitResponse = req.body
+  const digit = getDigitResponse.digits
 
-  if (getSpeechActionResponse.reason === freeclimb.enums.getSpeechReason.RECOGNITION) {
-    const spa = getSpeechActionResponse.recognitionResult
-    console.log('spa: ', spa)
-    switch (spa) {
-      case 'DEERFIELD':
-        numberToForwardTo = '+19402206447' // Deerfield Spa
-        break
-      case 'PERSEPHONE':
-        numberToForwardTo = '+19402302667' // Persephone Spa + Resort
-        break
-    }
+  let numberToForwardTo
+  let destination
+  switch (digit) {
+    case '1':
+      numberToForwardTo = '+19402206447' // Deerfield Spa
+      destination = freeclimb.percl.say('Calling Deerfield Spa')
+      break
+    case '2':
+      numberToForwardTo = '+19402302667' // Persephone Spa + Resort
+      destination = freeclimb.percl.say('Calling Persephone Spa + Resort')
+      break
+  }
+
+  if (numberToForwardTo) {
     const conferenceOptions = {
       playBeep: 'entryOnly',
       statusCallbackUrl: `${host}/gotConferenceStatus`,
     }
     const conferenceStart = freeclimb.percl.createConference(`${host}/conferenceCreated/${numberToForwardTo}`)
-    res.status(200).json([conferenceStart])
+    res.status(200).json([destination, conferenceStart])
+  } else if (!digit) {
+    console.log('No number was selected')
+    const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
+    res.status(200).json([startOver])
   } else {
-    console.log('speech was not recognized')
-    const badChoice = freeclimb.percl.say(`Sorry, I didn't catch that, please try again.`)
+    console.log("Number entered wasn't an option")
+    const badChoice = freeclimb.percl.say(`Sorry, ${digit} isn't an option.`)
     const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
     res.status(200).json([badChoice, startOver])
   }
@@ -89,14 +124,14 @@ app.post('/outboundCallMade/:conferenceId', (req, res) => {
   console.log('FreeClimb hit outbound call made')
   const outboundCallResponse = req.body
   const conferenceId = req.params.conferenceId
-  console.log('conferenceId:', conferenceId)
   // set the leaveConferenceUrl for the inbound caller, so that we can terminate the conference when they hang up
   const options = {
     leaveConferenceUrl: `${host}/leftConference`,
   }
   // Add initial caller to conference
   const addToConference = freeclimb.percl.addToConference(conferenceId, outboundCallResponse.callId, options)
-  res.status(200).json([addToConference])
+  const percl = freeclimb.percl.build(addToConference)
+  res.status(200).json(percl)
 })
 
 app.post('/callConnected/:conferenceId', (req, res) => {
@@ -105,12 +140,12 @@ app.post('/callConnected/:conferenceId', (req, res) => {
   const conferenceId = req.params.conferenceId
   if (callConnectedResponse.dialCallStatus != freeclimb.enums.callStatus.IN_PROGRESS) {
     // Terminate conference if agent does not answer the call. Can't use PerCL command since PerCL is ignored if the call was not answered.
-    console.log("Agent didn't answer call")
     terminateConference(conferenceId)
     return res.status(200).json([])
   }
   const addToConference = freeclimb.percl.addToConference(conferenceId, callConnectedResponse.callId)
-  res.status(200).json([addToConference])
+  const percl = freeclimb.percl.build(addToConference)
+  res.status(200).json(percl)
 })
 
 app.post('/leftConference', (req, res) => {
@@ -126,7 +161,14 @@ function terminateConference(conferenceId) {
   const options = {
     status: freeclimb.enums.conferenceStatus.TERMINATED,
   }
-  freeclimb.api.conferences.update(conferenceId, options)
+  freeclimb.api.conferences
+    .update(conferenceId, options)
+    .then(() => {
+      console.log('The conference was terminated')
+    })
+    .catch((err) => {
+      console.log('There was a problem terminating the conference:', err)
+    })
 }
 
 app.post('/gotSMS', (req, res) => {
@@ -142,10 +184,4 @@ app.post('/gotStatus', (req, res) => {
 app.post('/gotConferenceStatus', (req, res) => {
   console.log('received a conference status:', req.body)
   res.status(200).send()
-})
-
-app.get('/grammarFile', function (req, res) {
-  console.log('grammar req:', req)
-  const file = `${__dirname}/spaGrammar.xml`
-  res.download(file)
 })
