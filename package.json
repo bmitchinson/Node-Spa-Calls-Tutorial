@@ -4,13 +4,7 @@
   "description": "An example of utilizing the Vail FreeClimb API to configure a small franchise IVR",
   "main": "examples/main.js",
   "scripts": {
-    "start": "node examples/main.js",
-    "dev": "nodemon --watch examples examples/main.js",
-    "start:digit": "node examples/fullDigits.js",
-    "dev:digit": "nodemon --watch examples examples/fullDigits.js",
-    "start:voice": "node examples/voice.js",
-    "dev:voice": "nodemon --watch examples examples/voice.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node --insecure-http-parser part4.js"
   },
   "repository": {
     "type": "git",
@@ -25,7 +19,6 @@
     "@freeclimb/sdk": "^1.0.3",
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "nodemon": "^2.0.4"
+    "express": "^4.17.1"
   }
 }

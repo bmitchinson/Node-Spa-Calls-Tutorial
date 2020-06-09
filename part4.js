@@ -8,7 +8,6 @@ User calls their FreeClimb number and is asked to say either "Deerfield" or
 
 - /grammarFile servers the `spaGrammar.xml` file that getSpeech requires
   to understand speech input.
-
 */
 
 //////////////////////////////////////////
