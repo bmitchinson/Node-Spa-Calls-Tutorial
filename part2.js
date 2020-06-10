@@ -67,7 +67,7 @@ app.post('/conferenceCreated', (req, res) => {
   console.log('Freeclimb created a conference')
   const createConferenceResponse = req.body
   const conferenceId = createConferenceResponse.conferenceId
-  const agentPhoneNumber = '+19402302667'
+  const agentPhoneNumber = '+19402302667' // Persephone Spa
   // Hangup if we get a voicemail machine
   const options = {
     ifMachine: freeclimb.enums.ifMachine.hangup,
