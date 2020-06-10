@@ -5,11 +5,11 @@ small franchise IVR.
 
 ---
 
-- [Overview]()
-- [Part 1]()
-- [Part 2]()
-- [Part 3]()
-- [Part 4]()
+- [Overview](https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#overview)
+- [Part 1](https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#part-1---getting-started)
+- [Part 2](https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#part-2---redirecting-a-call)
+- [Part 3](https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#part-3---user-input-using-dial-tones)
+- [Part 4](https://github.com/bmitchinson/Node-Spa-Calls-Tutorial#part-4---user-voice-input)
 
 ---
 
