@@ -1,25 +1,13 @@
-/* part4: 
-User calls their FreeClimb number and is asked to say either "Deerfield" or
-"Persephone". If no speech was recognized the user is sent back to 
-/incomingMainOffice through a redirect
-  
-- All routes are the same as part3, and /spaSelected has been updated to use
-  getSpeech instead of getDigits
-
-- /grammarFile servers the `spaGrammar.xml` file that getSpeech requires
-  to understand speech input.
-*/
-
 //////////////////////////////////////////
 // Imports
 require('dotenv').config()
+const fs = require('fs')
 const freeclimbSDK = require('@freeclimb/sdk')
 const express = require('express')
 const bodyParser = require('body-parser')
-const browser = require('./browser')
 const app = express()
 app.use(bodyParser.json())
-app.use(browser)
+const configData = JSON.parse(fs.readFileSync('config.json', 'utf-8'))
 // bodyParser middleware is required in order to interpret responses
 //      from FreeClimb
 //////////////////////////////////////////
@@ -29,7 +17,7 @@ app.use(browser)
 const accountId = process.env.ACCOUNT_ID
 const authToken = process.env.AUTH_TOKEN
 const port = process.env.PORT || 80
-const host = process.env.HOST
+const host = configData['publicURL']
 //////////////////////////////////////////
 
 // Initializing an instance of the SDK with our credentials
@@ -40,12 +28,10 @@ app.listen(port, () => {
   console.log(`Listing on port ${port}`)
 })
 
-app.post('/incomingMainOfficeCall', (req, res) => {
+app.post('/incomingCall', (req, res) => {
   console.log('The main office phone was called, prompting the user.')
   const helloMsg = freeclimb.percl.say('Hello! Thanks for calling Vail Spa Management!')
-  const promptForSpa = freeclimb.percl.say(
-    'Please say Deerfield to contact the Deerfield Spa, or say Persephone to contact Persephone Spa and Resort.',
-  )
+  const promptForSpa = freeclimb.percl.say(configData['message'])
   const speechOptions = {
     grammarType: freeclimb.enums.grammarType.URL,
     prompts: [promptForSpa],
@@ -61,26 +47,19 @@ app.post('/spaSelected', (req, res) => {
   let destination
 
   if (getSpeechActionResponse.reason === freeclimb.enums.getSpeechReason.RECOGNITION) {
-    const spa = getSpeechActionResponse.recognitionResult
-    switch (spa) {
-      case 'DEERFIELD':
-        numberToForwardTo = '+19402206447' // Deerfield Spa
-        destination = freeclimb.percl.say('Calling Deerfield Spa')
-        break
-      case 'PERSEPHONE':
-        numberToForwardTo = '+19402302667' // Persephone Spa + Resort
-        destination = freeclimb.percl.say('Calling Persephone Spa + Resort')
-        break
-    }
+    const spaSelection = getSpeechActionResponse.recognitionResult
+    configData['phones'].forEach((phone) => {
+      if (spaSelection === phone['location']) numberToForwardTo = phone['number']
+    })
     const conferenceOptions = {
       playBeep: 'entryOnly',
     }
     const conferenceStart = freeclimb.percl.createConference(`${host}/conferenceCreated/${numberToForwardTo}`)
-    res.status(200).json([destination, conferenceStart])
+    res.status(200).json([conferenceStart])
   } else {
     console.log('speech was not recognized')
     const badChoice = freeclimb.percl.say(`Sorry, I didn't catch that, please try again.`)
-    const startOver = freeclimb.percl.redirect(`${host}/incomingMainOfficeCall`)
+    const startOver = freeclimb.percl.redirect(`${host}/incomingCall`)
     res.status(200).json([badChoice, startOver])
   }
 })
@@ -99,7 +78,7 @@ app.post('/conferenceCreated/:numberToForwardTo', (req, res) => {
     agentPhoneNumber,
     createConferenceResponse.from,
     `${host}/outboundCallMade/${conferenceId}`,
-    `${host}/callConnected/${conferenceId}`,
+    `${host}/outboundCallConnected/${conferenceId}`,
     options,
   )
   const percl = freeclimb.percl.build(say, outDial)
@@ -120,7 +99,7 @@ app.post('/outboundCallMade/:conferenceId', (req, res) => {
   res.status(200).json(percl)
 })
 
-app.post('/callConnected/:conferenceId', (req, res) => {
+app.post('/outboundCallConnected/:conferenceId', (req, res) => {
   console.log('FreeClimb hit call connected')
   const callConnectedResponse = req.body
   const conferenceId = req.params.conferenceId
@@ -160,6 +139,6 @@ function terminateConference(conferenceId) {
 }
 
 app.get('/grammarFile', function (req, res) {
-  const file = `${__dirname}/spaGrammar.xml`
+  const file = `${__dirname}/${configData['grammarFile']}`
   res.download(file)
 })

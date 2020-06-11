@@ -4,7 +4,7 @@
   "description": "An example of utilizing the Vail FreeClimb API to configure a small franchise IVR",
   "main": "examples/main.js",
   "scripts": {
-    "start": "node --insecure-http-parser part4.js"
+    "start": "node --insecure-http-parser speech-ivr.js"
   },
   "repository": {
     "type": "git",

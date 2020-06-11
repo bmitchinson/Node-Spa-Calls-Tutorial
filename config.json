@@ -1,0 +1,15 @@
+{
+  "publicURL": "https://7b7d16019700.ngrok.io",
+  "message": "Please say Deerfield to contact the Deerfield Spa, or say Persephone to contact Persephone Spa and Resort.",
+  "phones": [
+    {
+      "location": "DEERFIELD",
+      "number": "+19402206447"
+    },
+    {
+      "location": "PERSEPHONE",
+      "number": "+19402302667"
+    }
+  ],
+  "grammarFile": "spaGrammar.xml"
+}
